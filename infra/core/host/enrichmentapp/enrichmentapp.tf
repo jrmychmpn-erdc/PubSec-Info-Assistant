@@ -16,7 +16,7 @@ resource "azurerm_monitor_autoscale_setting" "scaleout" {
   resource_group_name = var.resourceGroupName
   location            = var.location
   target_resource_id  = azurerm_service_plan.appServicePlan.id
-
+  tags                = var.tags
   profile {
     name = "Scale out condition"
     capacity {
@@ -232,7 +232,7 @@ resource "azurerm_private_endpoint" "privateEnrichmentEndpoint" {
   resource_group_name           = var.resourceGroupName
   subnet_id                     = data.azurerm_subnet.subnet[0].id
   custom_network_interface_name = "infoasstenrichnic"
-
+  tags                          = var.tags
   private_dns_zone_group {
     name = "privatednszonegroup"
     private_dns_zone_ids = var.private_dns_zone_ids

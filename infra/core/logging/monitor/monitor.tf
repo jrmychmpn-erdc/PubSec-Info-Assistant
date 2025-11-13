@@ -3,6 +3,7 @@ resource "azurerm_application_insights_workbook" "example" {
   resource_group_name = var.resourceGroupName
   location            = var.location
   display_name        = var.logWorkbookName
+  tags                = var.tags
   data_json = jsonencode({
     "version" = "Notebook/1.0",
     "items" = [
@@ -84,8 +85,4 @@ resource "azurerm_application_insights_workbook" "example" {
       "Azure Monitor"
     ]
   })
-
-  tags = {
-    ENV = "Test"
-  }
 }

@@ -1,3 +1,13 @@
+terraform {
+  required_providers {
+    azurerm = {
+      source                = "hashicorp/azurerm"
+      version               = "~> 4.3.0"
+      configuration_aliases = [azurerm.infra_internal]
+    }
+  }
+}
+
 locals {
   arm_file_path = var.enabledDDOSProtectionPlan ? "arm_templates/network/vnet_w_ddos.template.json" : "arm_templates/network/vnet.template.json"
 }
@@ -58,6 +68,42 @@ resource "azurerm_resource_group_template_deployment" "vnet_w_subnets" {
   name            = "vnet-${filemd5(local.arm_file_path)}"
   deployment_mode = "Incremental"
 }
+
+data "azurerm_virtual_network" "ia" {
+  depends_on          = [ azurerm_resource_group_template_deployment.vnet_w_subnets ]
+  name                = var.vnet_name
+  resource_group_name = var.resourceGroupName
+}
+
+data "azurerm_virtual_network" "int" {
+  provider            = azurerm.infra_internal
+  name                = "ERDCRDEDMZ-VNET"
+  resource_group_name = "Network"
+}
+
+resource "azurerm_virtual_network_peering" "ia_to_int" {
+  name                         = "peer-${var.vnet_name}"
+  resource_group_name          = data.azurerm_virtual_network.ia.resource_group_name
+  virtual_network_name         = data.azurerm_virtual_network.ia.name
+  remote_virtual_network_id    = data.azurerm_virtual_network.int.id
+  allow_forwarded_traffic      = true
+  allow_virtual_network_access = true
+  allow_gateway_transit        = false
+  use_remote_gateways          = true
+}
+
+resource "azurerm_virtual_network_peering" "int_to_ia" {
+  provider                     = azurerm.infra_internal
+  name                         = "peer-${var.vnet_name}"
+  resource_group_name          = data.azurerm_virtual_network.int.resource_group_name
+  virtual_network_name         = data.azurerm_virtual_network.int.name
+  remote_virtual_network_id    = data.azurerm_virtual_network.ia.id
+  allow_forwarded_traffic      = true
+  allow_virtual_network_access = true
+  allow_gateway_transit        = true
+  use_remote_gateways          = false
+}
+
 
 data "azurerm_subnet" "ampls" {
   depends_on = [ azurerm_resource_group_template_deployment.vnet_w_subnets ]
@@ -143,24 +189,23 @@ data "azurerm_subnet" "acr" {
   resource_group_name  = var.resourceGroupName
 }
 
+# resource "azurerm_private_dns_resolver" "private_dns_resolver" {
+#     name                = var.dns_resolver_name
+#     location            = var.location
+#     resource_group_name = var.resourceGroupName
+#     virtual_network_id  = jsondecode(azurerm_resource_group_template_deployment.vnet_w_subnets.output_content).id.value
+#     tags                = var.tags
+#     depends_on = [ azurerm_resource_group_template_deployment.vnet_w_subnets ]
+# }
 
-resource "azurerm_private_dns_resolver" "private_dns_resolver" {
-    name                = var.dns_resolver_name
-    location            = var.location
-    resource_group_name = var.resourceGroupName
-    virtual_network_id  = jsondecode(azurerm_resource_group_template_deployment.vnet_w_subnets.output_content).id.value
+# resource "azurerm_private_dns_resolver_inbound_endpoint" "private_dns_resolver" {
+#     name                        = "dns-resolver-inbound-endpoint"
+#     location                    = var.location
+#     private_dns_resolver_id     = azurerm_private_dns_resolver.private_dns_resolver.id
+#     tags                        = var.tags
+#     ip_configurations {
+#       subnet_id                 = jsondecode(azurerm_resource_group_template_deployment.vnet_w_subnets.output_content).dnsSubnetId.value   
+#     }
 
-    depends_on = [ azurerm_resource_group_template_deployment.vnet_w_subnets ]
-}
-
-resource "azurerm_private_dns_resolver_inbound_endpoint" "private_dns_resolver" {
-    name                        = "dns-resolver-inbound-endpoint"
-    location                    = var.location
-    private_dns_resolver_id     = azurerm_private_dns_resolver.private_dns_resolver.id
-
-    ip_configurations {
-      subnet_id                 = jsondecode(azurerm_resource_group_template_deployment.vnet_w_subnets.output_content).dnsSubnetId.value   
-    }
-
-    depends_on = [ azurerm_private_dns_resolver.private_dns_resolver ]
-}
+#     depends_on = [ azurerm_private_dns_resolver.private_dns_resolver ]
+# }

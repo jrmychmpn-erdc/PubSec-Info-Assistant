@@ -1,5 +1,5 @@
 locals {
-  tags            = { ProjectName = "Information Assistant", BuildNumber = var.buildNumber }
+  tags            = { ProjectName = "Information Assistant", BuildNumber = var.buildNumber, project = "JAQI" }
   azure_roles     = jsondecode(file("${path.module}/azure_roles.json"))
   selected_roles  = ["CognitiveServicesOpenAIUser", 
                       "CognitiveServicesUser", 
@@ -69,6 +69,9 @@ module "network" {
   snetDnsCIDR                     = var.dns_CIDR
   arm_template_schema_mgmt_api    = var.arm_template_schema_mgmt_api
   azure_environment               = var.azure_environment
+  providers = {
+    azurerm.infra_internal        = azurerm.infra_internal
+  }
 }
 
 // Create the Private DNS Zones for all the services
@@ -81,6 +84,9 @@ module "privateDnsZoneAzureOpenAi" {
   virtual_network_id = var.is_secure_mode ? module.network[0].vnet_id : null
   tags               = local.tags
   depends_on = [ module.network[0] ]
+  providers = {
+    azurerm.infra_internal        = azurerm.infra_internal
+  }
 }
 
 module "privateDnsZoneAzureAi" {
@@ -92,6 +98,9 @@ module "privateDnsZoneAzureAi" {
   virtual_network_id = var.is_secure_mode ? module.network[0].vnet_id : null
   tags               = local.tags
   depends_on = [ module.network[0] ]
+  providers = {
+    azurerm.infra_internal        = azurerm.infra_internal
+  }
 }
 
 module "privateDnsZoneApp" {
@@ -103,6 +112,9 @@ module "privateDnsZoneApp" {
   virtual_network_id = var.is_secure_mode ? module.network[0].vnet_id : null
   tags               = local.tags
   depends_on = [ module.network[0] ]
+  providers = {
+    azurerm.infra_internal        = azurerm.infra_internal
+  }
 }
 
 module "privateDnsZoneKeyVault" {
@@ -114,6 +126,9 @@ module "privateDnsZoneKeyVault" {
   virtual_network_id = var.is_secure_mode ? module.network[0].vnet_id : null
   tags               = local.tags
   depends_on = [ module.network[0] ]
+  providers = {
+    azurerm.infra_internal        = azurerm.infra_internal
+  }
 }
 
 module "privateDnsZoneStorageAccountBlob" {
@@ -125,8 +140,10 @@ module "privateDnsZoneStorageAccountBlob" {
   virtual_network_id = var.is_secure_mode ? module.network[0].vnet_id : null
   tags               = local.tags
   depends_on = [ module.network[0] ]
+  providers = {
+    azurerm.infra_internal        = azurerm.infra_internal
+  }
 }
-
 
 module "privateDnsZoneStorageAccountFile" {
   source             = "./core/network/privateDNS"
@@ -137,6 +154,9 @@ module "privateDnsZoneStorageAccountFile" {
   virtual_network_id = var.is_secure_mode ? module.network[0].vnet_id : null
   tags               = local.tags
   depends_on = [ module.network[0] ]
+  providers = {
+    azurerm.infra_internal        = azurerm.infra_internal
+  }
 }
 
 module "privateDnsZoneStorageAccountTable" {
@@ -148,6 +168,9 @@ module "privateDnsZoneStorageAccountTable" {
   virtual_network_id = var.is_secure_mode ? module.network[0].vnet_id : null
   tags               = local.tags
   depends_on = [ module.network[0] ]
+  providers = {
+    azurerm.infra_internal        = azurerm.infra_internal
+  }
 }
 
 module "privateDnsZoneStorageAccountQueue" {
@@ -159,6 +182,9 @@ module "privateDnsZoneStorageAccountQueue" {
   virtual_network_id = var.is_secure_mode ? module.network[0].vnet_id : null
   tags               = local.tags
   depends_on = [ module.network[0] ]
+  providers = {
+    azurerm.infra_internal        = azurerm.infra_internal
+  }
 }
 
 module "privateDnsZoneSearchService" {
@@ -170,6 +196,9 @@ module "privateDnsZoneSearchService" {
   virtual_network_id = var.is_secure_mode ? module.network[0].vnet_id : null
   tags               = local.tags
   depends_on = [ module.network[0] ]
+  providers = {
+    azurerm.infra_internal        = azurerm.infra_internal
+  }
 }
 
 module "privateDnsZoneCosmosDb" {
@@ -181,6 +210,9 @@ module "privateDnsZoneCosmosDb" {
   virtual_network_id = var.is_secure_mode ? module.network[0].vnet_id : null
   tags               = local.tags
   depends_on = [ module.network[0] ]
+  providers = {
+    azurerm.infra_internal        = azurerm.infra_internal
+  }
 }
 
 module "privateDnsZoneACR" {
@@ -192,11 +224,14 @@ module "privateDnsZoneACR" {
   virtual_network_id = var.is_secure_mode ? module.network[0].vnet_id : null
   tags               = local.tags
   depends_on = [ module.network[0] ]
+  providers = {
+    azurerm.infra_internal        = azurerm.infra_internal
+  }
 }
 
 module "logging" {
-  depends_on = [ module.network ]
-  source = "./core/logging/loganalytics"
+  depends_on              = [ module.network ]
+  source                  = "./core/logging/loganalytics"
   logAnalyticsName        = var.logAnalyticsName != "" ? var.logAnalyticsName : "infoasst-la-${random_string.random.result}"
   applicationInsightsName = var.applicationInsightsName != "" ? var.applicationInsightsName : "infoasst-ai-${random_string.random.result}"
   location                = var.location
@@ -218,6 +253,9 @@ module "logging" {
   vnet_id                               = var.is_secure_mode ? module.network[0].vnet_id : null
   nsg_id                                = var.is_secure_mode ? module.network[0].nsg_id : null
   nsg_name                              = var.is_secure_mode ? module.network[0].nsg_name : null
+  providers = {
+    azurerm.infra_internal        = azurerm.infra_internal
+  }
 }
 
 module "storage" {
@@ -262,6 +300,9 @@ module "kvModule" {
   depends_on                    = [ module.entraObjects, module.privateDnsZoneKeyVault[0] ]
   azure_keyvault_domain         = var.azure_keyvault_domain
   arm_template_schema_mgmt_api  = var.arm_template_schema_mgmt_api
+  providers = {
+    azurerm.infra_internal = azurerm.infra_internal
+  }
 }
 
 module "enrichmentApp" {

@@ -3,67 +3,67 @@
     "contentVersion": "1.0.0.0",
     "parameters": {
         "name": {
-            "type": "string"
+            "type": "String"
         },
         "location": {
-            "type": "string"
+            "type": "String"
         },
         "tags": {
-            "type": "object"
+            "type": "Object"
         },
         "ddos_plan_id": {
-            "type": "string"
+            "type": "String"
         },
         "nsg_name": {
-            "type": "string"
+            "type": "String"
         },
         "vnet_CIDR": {
-            "type": "string"
+            "type": "String"
         },
         "subnet_AzureMonitor_CIDR": {
-            "type": "string"
+            "type": "String"
         },
         "subnet_AzureStorage_CIDR": {
-            "type": "string"
+            "type": "String"
         },
         "subnet_AzureCosmosDB_CIDR": {
-            "type": "string"
+            "type": "String"
         },
         "subnet_AzureAi_CIDR": {
-            "type": "string"
+            "type": "String"
         },
         "subnet_KeyVault_CIDR": {
-            "type": "string"
+            "type": "String"
         },
         "subnet_App_CIDR": {
-            "type": "string"
+            "type": "String"
         },
         "subnet_Function_CIDR": {
-            "type": "string"
+            "type": "String"
         },
         "subnet_Enrichment_CIDR": {
-            "type": "string"
+            "type": "String"
         },
         "subnet_Integration_CIDR": {
-            "type": "string"
+            "type": "String"
         },
         "subnet_AiSearch_CIDR": {
-            "type": "string"
+            "type": "String"
         },
         "subnet_AzureOpenAI_CIDR": {
-            "type": "string"
+            "type": "String"
         },
         "subnet_Acr_CIDR": {
-            "type": "string"
+            "type": "String"
         },
         "subnet_Dns_CIDR": {
-            "type": "string"
+            "type": "String"
         },
         "privateEndpointNetworkPoliciesStatus": {
-            "type": "string"
+            "type": "String"
         },
         "privateLinkServiceNetworkPoliciesStatus": {
-            "type": "string"
+            "type": "String"
         }
     },
     "resources": [
@@ -278,11 +278,11 @@
     "outputs": {
         "id": {
             "value": "[resourceId('Microsoft.Network/virtualNetworks',parameters('name'))]",
-            "type": "string"
+            "type": "String"
         },
         "dnsSubnetId": {  
             "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('name'), 'dns')]",  
-            "type": "string"  
+            "type": "String"  
         }
     }
 }

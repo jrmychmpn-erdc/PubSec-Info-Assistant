@@ -211,7 +211,7 @@ resource "azurerm_private_endpoint" "blobPrivateEndpoint" {
   resource_group_name           = var.resourceGroupName
   subnet_id                     = data.azurerm_subnet.subnet[0].id
   custom_network_interface_name = "infoasstblobstoragenic"
-
+  tags                          = var.tags
   private_service_connection {
     name                           = "${var.name}-private-link-service-connection"
     private_connection_resource_id = azurerm_storage_account.storage.id
@@ -233,7 +233,7 @@ resource "azurerm_private_endpoint" "filePrivateEndpoint" {
   resource_group_name           = var.resourceGroupName
   subnet_id                     = data.azurerm_subnet.subnet[0].id
   custom_network_interface_name = "infoasstfilestoragenic"
-
+  tags                          = var.tags
   private_service_connection {
     name                           = "${var.name}-private-link-service-connection"
     private_connection_resource_id = azurerm_storage_account.storage.id
@@ -256,7 +256,7 @@ resource "azurerm_private_endpoint" "tablePrivateEndpoint" {
   resource_group_name           = var.resourceGroupName
   subnet_id                     = data.azurerm_subnet.subnet[0].id
   custom_network_interface_name = "infoassttablestoragenic"
-
+  tags                          = var.tags
   private_service_connection {
     name                           = "${var.name}-private-link-service-connection"
     private_connection_resource_id = azurerm_storage_account.storage.id
@@ -278,7 +278,7 @@ resource "azurerm_private_endpoint" "queuePrivateEndpoint" {
   resource_group_name           = var.resourceGroupName
   subnet_id                     = data.azurerm_subnet.subnet[0].id
   custom_network_interface_name = "infoasstqueuestoragenic"
-
+  tags                          = var.tags
   private_service_connection {
     name                           = "${var.name}-private-link-service-connection"
     private_connection_resource_id = azurerm_storage_account.storage.id

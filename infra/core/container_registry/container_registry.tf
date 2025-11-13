@@ -4,7 +4,7 @@ resource "azurerm_container_registry" "acr" {
   location            = var.location
   sku                 = "Premium"  // Premium is required for networking features
   admin_enabled       = true       // Enables the admin account for Docker login
-
+  tags                = var.tags
   public_network_access_enabled = var.is_secure_mode ? false : true
 }
 

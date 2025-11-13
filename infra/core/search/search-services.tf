@@ -30,7 +30,7 @@ resource "azurerm_private_endpoint" "searchPrivateEndpoint" {
   resource_group_name           = var.resourceGroupName
   subnet_id                     = data.azurerm_subnet.subnet[0].id
   custom_network_interface_name = "infoasstsearchnic"
-
+  tags                          = var.tags
   private_service_connection {
     name                           = "${var.name}-private-link-service-connection"
     private_connection_resource_id = azurerm_search_service.search.id

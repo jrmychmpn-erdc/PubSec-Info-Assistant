@@ -27,7 +27,7 @@ resource "azurerm_private_endpoint" "docintPrivateEndpoint" {
   resource_group_name           = var.resourceGroupName
   subnet_id                     = data.azurerm_subnet.subnet[0].id
   custom_network_interface_name = "infoasstdocintelnic"
-
+  tags                          = var.tags
   private_service_connection {
     name                           = "cognitiveAccount"
     is_manual_connection           = false

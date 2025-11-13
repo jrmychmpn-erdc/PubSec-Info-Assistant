@@ -32,6 +32,13 @@ provider "azurerm" {
   environment = var.azure_environment == "AzureUSGovernment" ? "usgovernment" : "public"
 }
 
+provider "azurerm" {
+  alias           = "infra_internal"
+  subscription_id = "9ce7fda3-21d7-451b-b8b7-5f1509b02ebb"
+  environment = var.azure_environment == "AzureUSGovernment" ? "usgovernment" : "public"
+  features {}
+}
+
 provider "azuread" {
   environment = var.azure_environment == "AzureUSGovernment" ? "usgovernment" : "public"
 }

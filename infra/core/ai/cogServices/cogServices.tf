@@ -36,7 +36,7 @@ resource "azurerm_private_endpoint" "accountPrivateEndpoint" {
   resource_group_name           = var.resourceGroupName
   subnet_id                     = data.azurerm_subnet.subnet[0].id
   custom_network_interface_name = "infoasstazureainic"
-
+  tags                          = var.tags
 
   private_service_connection {
     name                           = "${var.name}-private-link-service-connection"
