@@ -9,8 +9,9 @@ help: ## Show this help
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%s\033[0m|%s\n", $$1, $$2}' \
         | column -t -s '|'
 
-deploy: build infrastructure extract-env deploy-search-indexes deploy-functions deploy-webapp deploy-enrichments ## Deploy infrastructure and application code
- 
+#deploy: build infrastructure extract-env deploy-search-indexes deploy-functions deploy-webapp deploy-enrichments ## Deploy infrastructure and application code
+deploy: infrastructure extract-env deploy-search-indexes deploy-functions deploy-webapp deploy-enrichments ## Deploy infrastructure and application code
+
 build-deploy-webapp: build extract-env deploy-webapp ##Build and Deploy the Webapp
 build-deploy-enrichments: build extract-env deploy-enrichments ##Build and Deploy the Enrichment Webapp
 build-deploy-functions: build extract-env deploy-functions ##Build and Deploy the Functions
