@@ -1,4 +1,4 @@
-variable "name" {
+variable "resource_name_suffix" {
   type = string
 }
 
@@ -30,11 +30,6 @@ variable "key_vault_name" {
   type = string
 }
 
-variable "is_secure_mode" {
-  type = bool
-  default = false
-}
-
 variable "private_dns_zone_ids" {
   type = set(string)
 }
@@ -52,10 +47,6 @@ variable "kv_secret_expiration" {
   description = "The value for key vault secret expiration in  seconds since 1970-01-01T00:00:00Z"
 }
 
-variable "subnet_name" {
-  type    = string
-}
-
-variable "vnet_name" {
+variable "subnet_id" {
   type    = string
 }

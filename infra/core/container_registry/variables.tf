@@ -3,6 +3,10 @@ variable "name" {
   type        = string
 }
 
+variable "resource_name_suffix" {
+  type = string
+}
+
 variable "location" {
   description = "Location for all resources."
   type        = string
@@ -13,18 +17,8 @@ variable "resourceGroupName" {
   default = ""
 }
 
-variable "vnet_name" {
-  type = string  
-}
-
-variable "subnet_name" {
+variable "subnet_id" {
   type = string
-}
-
-variable "is_secure_mode" {
-  description = "Specifies whether to deploy in secure mode"
-  type        = bool
-  default     = true
 }
 
 variable "private_dns_zone_ids" {

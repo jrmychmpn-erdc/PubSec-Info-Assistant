@@ -13,7 +13,7 @@ locals {
 }
 
 resource "azurerm_log_analytics_workspace" "logAnalytics" {
-  name                = var.logAnalyticsName
+  name                = "log-${var.resource_name_suffix}"
   location            = var.location
   resource_group_name = var.resourceGroupName
   sku                 = var.skuName
@@ -22,7 +22,7 @@ resource "azurerm_log_analytics_workspace" "logAnalytics" {
 }
 
 resource "azurerm_application_insights" "applicationInsights" {
-  name                = var.applicationInsightsName
+  name                = "appi-${var.resource_name_suffix}"
   location            = var.location
   resource_group_name = var.resourceGroupName
   application_type    = "web"
@@ -30,9 +30,7 @@ resource "azurerm_application_insights" "applicationInsights" {
   workspace_id        = azurerm_log_analytics_workspace.logAnalytics.id
 }
 
-// Create Diagnostic Setting for NSG here since the log analytics workspace is created here after the network is created
 resource "azurerm_monitor_diagnostic_setting" "nsg_diagnostic_logs" {
-  count                      = var.is_secure_mode ? 1 : 0
   name                       = var.nsg_name
   target_resource_id         = var.nsg_id
   log_analytics_workspace_id = azurerm_log_analytics_workspace.logAnalytics.id
@@ -44,51 +42,43 @@ resource "azurerm_monitor_diagnostic_setting" "nsg_diagnostic_logs" {
   }
 }
 
-// Create Azure Private Link Scope for Azure Monitor
 resource "azurerm_monitor_private_link_scope" "ampls" {
-  count               = var.is_secure_mode ? 1 : 0
-  name                = "${var.privateLinkScopeName}-pls"
+  name                = "pls-${var.resource_name_suffix}"
   resource_group_name = var.resourceGroupName
   tags                = var.tags
 }
 
-// add scoped resource for Log Analytics Workspace
 resource "azurerm_monitor_private_link_scoped_service" "ampl-ss_log_analytics" {
-  count               = var.is_secure_mode ? 1 : 0
-  name                = "${var.privateLinkScopeName}-law-connection"
+  name                = "plss-${var.resource_name_suffix}-log"
   resource_group_name = var.resourceGroupName
-  scope_name          = azurerm_monitor_private_link_scope.ampls[0].name
+  scope_name          = azurerm_monitor_private_link_scope.ampls.name
   linked_resource_id  = azurerm_log_analytics_workspace.logAnalytics.id
 }
 
-// add scope resoruce for app insights
 resource "azurerm_monitor_private_link_scoped_service" "ampl_ss_app_insights" {
-  count               = var.is_secure_mode ? 1 : 0
-  name                = "${var.privateLinkScopeName}-appInsights-connection"
+  name                = "plss-${var.resource_name_suffix}-appi"
   resource_group_name = var.resourceGroupName
-  scope_name          = azurerm_monitor_private_link_scope.ampls[0].name
+  scope_name          = azurerm_monitor_private_link_scope.ampls.name
   linked_resource_id  = azurerm_application_insights.applicationInsights.id
 }
 
 data "azurerm_subnet" "subnet" {
-  count                = var.is_secure_mode ? 1 : 0
   name                 = var.subnet_name
   virtual_network_name = var.vnet_name
   resource_group_name  = var.resourceGroupName
 }
 
-// add private endpoint for azure monitor - metrics, app insights, log analytics
 resource "azurerm_private_endpoint" "ampls" {
-  count                             = var.is_secure_mode ? 1 : 0
-  name                              = "${var.privateLinkScopeName}-private-endpoint"
+  name                              = "pend-${var.resource_name_suffix}-pls"
   location                          = var.location
   resource_group_name               = var.resourceGroupName
-  subnet_id                         = data.azurerm_subnet.subnet[0].id
-  custom_network_interface_name     = "infoasstamplsnic"
+  subnet_id                         = data.azurerm_subnet.subnet.id
+  custom_network_interface_name     = "nic-${var.resource_name_suffix}-pls"
   tags                              = var.tags
+
   private_service_connection {
-    name                            = "${var.privateLinkScopeName}-privateserviceconnection"
-    private_connection_resource_id  = azurerm_monitor_private_link_scope.ampls[0].id
+    name                            = "pend-${var.resource_name_suffix}-pls"
+    private_connection_resource_id  = azurerm_monitor_private_link_scope.ampls.id
     is_manual_connection            = false
     subresource_names               = [var.groupId]
   }
@@ -115,13 +105,6 @@ resource "azurerm_private_endpoint" "ampls" {
   ]
 }
 
-# resource "azurerm_private_dns_zone" "monitor" {
-#   count               = var.is_secure_mode ? 1 : 0
-#   name                = var.privateDnsZoneNameMonitor
-#   resource_group_name = var.resourceGroupName
-#   tags                = var.tags
-# }
-
 data "azurerm_private_dns_zone" "monitor" {
   provider            = azurerm.infra_internal
   name                = var.privateDnsZoneNameMonitor
@@ -130,8 +113,7 @@ data "azurerm_private_dns_zone" "monitor" {
 
 resource "azurerm_private_dns_a_record" "monitor_api" {
   provider            = azurerm.infra_internal
-  count               = var.is_secure_mode ? 1 : 0
-  name                = "api"
+  name                = "${var.resource_name_suffix}-api"
   zone_name           = data.azurerm_private_dns_zone.monitor.name
   resource_group_name = local.private_dns_zone_resource_group
   ttl                 = 3600
@@ -140,8 +122,7 @@ resource "azurerm_private_dns_a_record" "monitor_api" {
 
 resource "azurerm_private_dns_a_record" "monitor_global" {
   provider            = azurerm.infra_internal
-  count               = var.is_secure_mode ? 1 : 0
-  name                = "global.in.ai"
+  name                = "${var.resource_name_suffix}-global"
   zone_name           = data.azurerm_private_dns_zone.monitor.name
   resource_group_name = local.private_dns_zone_resource_group
   ttl                 = 3600
@@ -150,8 +131,7 @@ resource "azurerm_private_dns_a_record" "monitor_global" {
 
 resource "azurerm_private_dns_a_record" "monitor_profiler" {
   provider            = azurerm.infra_internal
-  count               = var.is_secure_mode ? 1 : 0
-  name                = "profiler"
+  name                = "${var.resource_name_suffix}-profiler"
   zone_name           = data.azurerm_private_dns_zone.monitor.name
   resource_group_name = local.private_dns_zone_resource_group
   ttl                 = 3600
@@ -160,8 +140,7 @@ resource "azurerm_private_dns_a_record" "monitor_profiler" {
 
 resource "azurerm_private_dns_a_record" "monitor_live" {
   provider            = azurerm.infra_internal
-  count               = var.is_secure_mode ? 1 : 0
-  name                = "live"
+  name                = "${var.resource_name_suffix}-live"
   zone_name           = data.azurerm_private_dns_zone.monitor.name
   resource_group_name = local.private_dns_zone_resource_group
   ttl                 = 3600
@@ -170,8 +149,7 @@ resource "azurerm_private_dns_a_record" "monitor_live" {
 
 resource "azurerm_private_dns_a_record" "monitor_snapshot" {
   provider            = azurerm.infra_internal
-  count               = var.is_secure_mode ? 1 : 0
-  name                = "snapshot"
+  name                = "${var.resource_name_suffix}-snapshot"
   zone_name           = data.azurerm_private_dns_zone.monitor.name
   resource_group_name = local.private_dns_zone_resource_group
   ttl                 = 3600
@@ -180,19 +158,11 @@ resource "azurerm_private_dns_a_record" "monitor_snapshot" {
 
 resource "azurerm_private_dns_zone_virtual_network_link" "monitor-net" {
   provider              = azurerm.infra_internal
-  count                 = var.is_secure_mode ? 1 : 0
-  name                  = "infoasst-pl-monitor-net"
+  name                  = "pdnsv-${var.resource_name_suffix}"
   resource_group_name   = local.private_dns_zone_resource_group
   private_dns_zone_name = data.azurerm_private_dns_zone.monitor.name
   virtual_network_id    = var.vnet_id
 }
-
-# resource "azurerm_private_dns_zone" "oms" {
-#   count               = var.is_secure_mode ? 1 : 0
-#   name                = var.privateDnsZoneNameOms
-#   resource_group_name = var.resourceGroupName
-#   tags                = var.tags
-# }
 
 data "azurerm_private_dns_zone" "oms" {
   provider            = azurerm.infra_internal
@@ -202,8 +172,7 @@ data "azurerm_private_dns_zone" "oms" {
 
 resource "azurerm_private_dns_a_record" "oms_law_id" {
   provider            = azurerm.infra_internal
-  count               = var.is_secure_mode ? 1 : 0
-  name                = "infoasst-pl-oms-law-id"
+  name                = "${var.resource_name_suffix}-oms-law-id"
   zone_name           = data.azurerm_private_dns_zone.oms.name
   resource_group_name = local.private_dns_zone_resource_group
   ttl                 = 3600
@@ -212,19 +181,11 @@ resource "azurerm_private_dns_a_record" "oms_law_id" {
 
 resource "azurerm_private_dns_zone_virtual_network_link" "oms-net" {
   provider              = azurerm.infra_internal
-  count                 = var.is_secure_mode ? 1 : 0
-  name                  = "infoasst-pl-oms-net"
+  name                  = "pdnsv-${var.resource_name_suffix}"
   resource_group_name   = local.private_dns_zone_resource_group
   private_dns_zone_name = data.azurerm_private_dns_zone.oms.name
   virtual_network_id    = var.vnet_id
 }
-
-# resource "azurerm_private_dns_zone" "ods" {
-#   count               = var.is_secure_mode ? 1 : 0
-#   name                = var.privateDnSZoneNameOds
-#   resource_group_name = var.resourceGroupName
-#   tags                = var.tags
-# }
 
 data "azurerm_private_dns_zone" "ods" {
   provider            = azurerm.infra_internal
@@ -234,8 +195,7 @@ data "azurerm_private_dns_zone" "ods" {
 
 resource "azurerm_private_dns_a_record" "ods_law_id" {
   provider            = azurerm.infra_internal
-  count               = var.is_secure_mode ? 1 : 0
-  name                = "infoasst_pl_ods_law_id"
+  name                = "${var.resource_name_suffix}-ods-law-id"
   zone_name           = data.azurerm_private_dns_zone.ods.name
   resource_group_name = local.private_dns_zone_resource_group
   ttl                 = 3600
@@ -244,19 +204,11 @@ resource "azurerm_private_dns_a_record" "ods_law_id" {
 
 resource "azurerm_private_dns_zone_virtual_network_link" "ods-net" {
   provider              = azurerm.infra_internal
-  count                 = var.is_secure_mode ? 1 : 0
-  name                  = "infoasst-pl-ods-net"
+  name                  = "pdnsv-${var.resource_name_suffix}"
   resource_group_name   = local.private_dns_zone_resource_group
   private_dns_zone_name = data.azurerm_private_dns_zone.ods.name
   virtual_network_id    = var.vnet_id
 }
-
-# resource "azurerm_private_dns_zone" "agentsvc" {
-#   count               = var.is_secure_mode ? 1 : 0
-#   name                = var.privateDnsZoneNameAutomation
-#   resource_group_name = var.resourceGroupName
-#   tags                = var.tags
-# }
 
 data "azurerm_private_dns_zone" "agentsvc" {
   provider            = azurerm.infra_internal
@@ -266,8 +218,7 @@ data "azurerm_private_dns_zone" "agentsvc" {
 
 resource "azurerm_private_dns_a_record" "agentsvc_law_id" {
   provider            = azurerm.infra_internal
-  count               = var.is_secure_mode ? 1 : 0
-  name                = "infoasst_pl_agentsvc_law_id"
+  name                = "${var.resource_name_suffix}-agentsvc-law-id"
   zone_name           = data.azurerm_private_dns_zone.agentsvc.name
   resource_group_name = local.private_dns_zone_resource_group
   ttl                 = 3600
@@ -276,8 +227,7 @@ resource "azurerm_private_dns_a_record" "agentsvc_law_id" {
 
 resource "azurerm_private_dns_zone_virtual_network_link" "agentsvc-net" {
   provider              = azurerm.infra_internal
-  count                 = var.is_secure_mode ? 1 : 0
-  name                  = "infoasst-pl-agentsvc-net"
+  name                  = "pdnsv-${var.resource_name_suffix}"
   resource_group_name   = local.private_dns_zone_resource_group
   private_dns_zone_name = data.azurerm_private_dns_zone.agentsvc.name
   virtual_network_id    = var.vnet_id
@@ -285,8 +235,7 @@ resource "azurerm_private_dns_zone_virtual_network_link" "agentsvc-net" {
 
 resource "azurerm_private_dns_a_record" "blob_scadvisorcontentpld" {
   provider            = azurerm.infra_internal
-  count               = var.is_secure_mode ? 1 : 0
-  name                = "scadvisorcontentpl"
+  name                = "${var.resource_name_suffix}-scadvisorcontentpld"
   zone_name           = var.privateDnsZoneNameBlob
   resource_group_name = local.private_dns_zone_resource_group
   ttl                 = 3600

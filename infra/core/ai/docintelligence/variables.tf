@@ -1,4 +1,4 @@
-variable "name" {
+variable "resource_name_suffix" {
   type = string
 }
 
@@ -10,10 +10,6 @@ variable "location" {
 variable "tags" {
   type    = map(string)
   default = {}
-}
-
-variable "customSubDomainName" {
-  type    = string
 }
 
 variable "sku" {
@@ -34,11 +30,6 @@ variable "key_vault_name" {
   type = string
 }
 
-variable "is_secure_mode" {
-  type = bool
-  default = false
-}
-
 variable "subnet_id" {
   type = string
   default = ""
@@ -46,14 +37,6 @@ variable "subnet_id" {
 
 variable "private_dns_zone_ids" {
   type = set(string)
-}
-
-variable "vnet_name" {
-  type = string
-}
-
-variable "subnet_name" {
-  type = string
 }
 
 variable "arm_template_schema_mgmt_api" {

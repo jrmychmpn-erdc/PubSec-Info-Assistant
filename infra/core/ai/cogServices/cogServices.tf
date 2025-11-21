@@ -1,12 +1,12 @@
 resource "azurerm_cognitive_account" "cognitiveService" {
-  name                          = var.name
+  name                          = "cog-${var.resource_name_suffix}"
   location                      = var.location
   resource_group_name           = var.resourceGroupName
   kind                          = "CognitiveServices"
   sku_name                      = var.sku["name"]
   tags                          = var.tags
-  custom_subdomain_name         = var.name
-  public_network_access_enabled = var.is_secure_mode ? false : true
+  custom_subdomain_name         = "cog-${var.resource_name_suffix}"
+  public_network_access_enabled = false
 }
 
 module "cog_service_key" {
@@ -22,31 +22,23 @@ module "cog_service_key" {
   contentType                   = "application/vnd.bag-StrongEncPasswordString"
 }
 
-data "azurerm_subnet" "subnet" {
-  count                = var.is_secure_mode ? 1 : 0
-  name                 = var.subnet_name
-  virtual_network_name = var.vnet_name
-  resource_group_name  = var.resourceGroupName
-}
-
 resource "azurerm_private_endpoint" "accountPrivateEndpoint" {
-  count                         = var.is_secure_mode ? 1 : 0
-  name                          = "${var.name}-private-endpoint"
+  name                          = "pend-${var.resource_name_suffix}-cog"
   location                      = var.location
   resource_group_name           = var.resourceGroupName
-  subnet_id                     = data.azurerm_subnet.subnet[0].id
-  custom_network_interface_name = "infoasstazureainic"
+  subnet_id                     = var.subnet_id
+  custom_network_interface_name = "nic-${var.resource_name_suffix}-cog"
   tags                          = var.tags
 
   private_service_connection {
-    name                           = "${var.name}-private-link-service-connection"
+    name                           = "pend-${var.resource_name_suffix}-cog"
     private_connection_resource_id = azurerm_cognitive_account.cognitiveService.id
     is_manual_connection           = false
     subresource_names              = ["account"]
   }
 
   private_dns_zone_group {
-    name                 = "${var.name}PrivateDnsZoneGroup"
+    name                 = "PrivateDnsZoneGroup"
     private_dns_zone_ids = var.private_dns_zone_ids
 
   }

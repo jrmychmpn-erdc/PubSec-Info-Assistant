@@ -1,6 +1,5 @@
-variable "name" {
-  description = "The name"
-  type        = string
+variable "resource_name_suffix" {
+  type = string
 }
 
 variable "location" {

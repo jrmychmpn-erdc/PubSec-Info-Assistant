@@ -1,6 +1,5 @@
-// Create Enrichment App Service Plan 
 resource "azurerm_service_plan" "appServicePlan" {
-  name                          = var.plan_name
+  name                          = "plan-${var.resource_name_suffix}-enrichment"
   location                      = var.location
   resource_group_name           = var.resourceGroupName
   sku_name                      = var.sku["size"]
@@ -67,9 +66,8 @@ resource "azurerm_monitor_autoscale_setting" "scaleout" {
   }
 }
 
-# Create the Enrichment App Service
 resource "azurerm_linux_web_app" "enrichmentapp" {
-  name                                            = var.name
+  name                                            = "app-${var.resource_name_suffix}-enrichment"
   location                                        = var.location
   resource_group_name                             = var.resourceGroupName
   service_plan_id                                 = azurerm_service_plan.appServicePlan.id
@@ -78,8 +76,8 @@ resource "azurerm_linux_web_app" "enrichmentapp" {
   webdeploy_publish_basic_authentication_enabled  = false
   client_affinity_enabled                         = false
   enabled                                         = true
-  public_network_access_enabled                   = var.is_secure_mode ? false : true
-  virtual_network_subnet_id                       = var.is_secure_mode ? var.subnetIntegration_id : null
+  public_network_access_enabled                   = false
+  virtual_network_subnet_id                       = var.subnetIntegration_id
   site_config {
     always_on                                     = var.alwaysOn
     app_command_line                              = var.appCommandLine
@@ -106,7 +104,7 @@ resource "azurerm_linux_web_app" "enrichmentapp" {
       "ENABLE_ORYX_BUILD"                         = tostring(var.enableOryxBuild)
       "APPLICATIONINSIGHTS_CONNECTION_STRING"     = var.applicationInsightsConnectionString
       "KEY_EXPIRATION_DATE"                       = timeadd(timestamp(), "4320h") # Added expiration date setting for keys
-      "WEBSITE_PULL_IMAGE_OVER_VNET"              = var.is_secure_mode ? "true" : "false"
+      "WEBSITE_PULL_IMAGE_OVER_VNET"              = "true"
       "WEBSITES_PORT"                             = "6000"
       "WEBSITES_CONTAINER_START_TIME_LIMIT"       = "1600"
       "WEBSITES_ENABLE_APP_SERVICE_STORAGE"       = "false"
@@ -138,48 +136,7 @@ resource "azurerm_role_assignment" "acr_pull_role" {
   scope                = var.container_registry_id
 }
 
-resource "azurerm_monitor_diagnostic_setting" "diagnostic_logs_commercial" {
-  count                      = var.azure_environment == "AzureUSGovernment" ? 0 : 1
-  name                       = azurerm_linux_web_app.enrichmentapp.name
-  target_resource_id         = azurerm_linux_web_app.enrichmentapp.id
-  log_analytics_workspace_id = var.logAnalyticsWorkspaceResourceId
-
-  enabled_log  {
-    category = "AppServiceAppLogs"
-  }
-
-  enabled_log {
-    category = "AppServicePlatformLogs"
-  }
-
-  enabled_log {
-    category = "AppServiceConsoleLogs"
-  }
-  
-  enabled_log {
-    category = "AppServiceIPSecAuditLogs"
-  }
-
-  enabled_log {
-    category = "AppServiceHTTPLogs"
-  }
-
-  enabled_log {
-    category = "AppServiceAuditLogs"
-  }
-
-  enabled_log {
-    category = "AppServiceAuthenticationLogs"
-  }
-
-  metric {
-    category = "AllMetrics"
-    enabled  = true
-  }
-}
-
 resource "azurerm_monitor_diagnostic_setting" "diagnostic_logs_usgov" {
-  count                      = var.azure_environment == "AzureUSGovernment" ? 1 : 0
   name                       = azurerm_linux_web_app.enrichmentapp.name
   target_resource_id         = azurerm_linux_web_app.enrichmentapp.id
   log_analytics_workspace_id = var.logAnalyticsWorkspaceResourceId
@@ -218,20 +175,12 @@ resource "azurerm_monitor_diagnostic_setting" "diagnostic_logs_usgov" {
   }
 }
 
-data "azurerm_subnet" "subnet" {
-  count                = var.is_secure_mode ? 1 : 0
-  name                 = var.subnet_name
-  virtual_network_name = var.vnet_name
-  resource_group_name  = var.resourceGroupName
-}
-
 resource "azurerm_private_endpoint" "privateEnrichmentEndpoint" {
-  count                         = var.is_secure_mode ? 1 : 0
-  name                          = "${var.name}-private-endpoint"
+  name                          = "pend-${var.resource_name_suffix}-app-enrichment"
   location                      = var.location
   resource_group_name           = var.resourceGroupName
-  subnet_id                     = data.azurerm_subnet.subnet[0].id
-  custom_network_interface_name = "infoasstenrichnic"
+  subnet_id                     = var.subnet_id
+  custom_network_interface_name = "nic-${var.resource_name_suffix}-app-enrichment"
   tags                          = var.tags
   private_dns_zone_group {
     name = "privatednszonegroup"
@@ -246,18 +195,11 @@ resource "azurerm_private_endpoint" "privateEnrichmentEndpoint" {
   }
 }
 
-data "azurerm_key_vault" "existing" {
-  name                = var.keyVaultName
-  resource_group_name = var.resourceGroupName
-}
-
 resource "azurerm_key_vault_access_policy" "policy" {
-  key_vault_id = data.azurerm_key_vault.existing.id
-
-  tenant_id = azurerm_linux_web_app.enrichmentapp.identity.0.tenant_id
-  object_id = azurerm_linux_web_app.enrichmentapp.identity.0.principal_id
-
-  secret_permissions = [
+  key_vault_id        = var.keyVaultId
+  tenant_id           = azurerm_linux_web_app.enrichmentapp.identity.0.tenant_id
+  object_id           = azurerm_linux_web_app.enrichmentapp.identity.0.principal_id
+  secret_permissions  = [
     "Get",
     "List"
   ]

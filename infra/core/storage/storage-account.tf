@@ -13,15 +13,15 @@ resource "azurerm_storage_account" "storage" {
   access_tier                     = var.accessTier
   min_tls_version                 = var.minimumTlsVersion
   https_traffic_only_enabled      = true
-  public_network_access_enabled   = var.is_secure_mode ? false : true
+  public_network_access_enabled   = false
   allow_nested_items_to_be_public = false
-  shared_access_key_enabled       = true #var.is_secure_mode ? false : true # This will need to be enabled once the Azure Functions can support Entra ID auth
+  shared_access_key_enabled       = true 
 
   network_rules {  
-    default_action                = var.is_secure_mode ? "Deny" : "Allow"
+    default_action                = "Deny"
     bypass                        = ["AzureServices"]  
     ip_rules                      = []  
-    virtual_network_subnet_ids    = var.is_secure_mode ? var.network_rules_allowed_subnets : []  
+    virtual_network_subnet_ids    = var.network_rules_allowed_subnets
   }
   
   blob_properties{
@@ -156,7 +156,7 @@ resource "azurerm_resource_group_template_deployment" "container" {
     "storageAccountName" = { value = "${azurerm_storage_account.storage.name}" },
     "location"           = { value = var.location },
     "containerName"      = { value = var.containers[count.index] }
-    "publicNetworkAccess" = { value = var.is_secure_mode ? "Disabled" : "Enabled" }
+    "publicNetworkAccess" = { value = "Disabled" }
   })
   template_content = data.template_file.container.template
   # The filemd5 forces this to run when the file is changed
@@ -165,7 +165,6 @@ resource "azurerm_resource_group_template_deployment" "container" {
   deployment_mode = "Incremental"
 }
 
-// Create a storage queue
 resource "azurerm_resource_group_template_deployment" "queue" {
   depends_on          = [azurerm_storage_account.storage]
   count               = length(var.queueNames)
@@ -174,7 +173,7 @@ resource "azurerm_resource_group_template_deployment" "queue" {
     "storageAccountName" = { value = "${azurerm_storage_account.storage.name}" },
     "location"           = { value = var.location },
     "queueName"          = { value = var.queueNames[count.index] }
-    "publicNetworkAccess" = { value = var.is_secure_mode ? "Disabled" : "Enabled" }
+    "publicNetworkAccess" = { value = "Disabled" }
   })
   template_content = data.template_file.queue.template
   # The filemd5 forces this to run when the file is changed
@@ -196,106 +195,88 @@ module "storage_connection_string" {
   contentType                   = "application/vnd.ms-StorageConnectionString"
 }
 
-data "azurerm_subnet" "subnet" {
-  count                = var.is_secure_mode ? 1 : 0
-  name                 = var.subnet_name
-  virtual_network_name = var.vnet_name
-  resource_group_name  = var.resourceGroupName
-}
-
-// Create a private endpoint for blob storage account
 resource "azurerm_private_endpoint" "blobPrivateEndpoint" {
-  count                         = var.is_secure_mode ? 1 : 0
-  name                          = "${var.name}-private-endpoint-blob"
+  name                          = "pend-${var.name}-blob"
   location                      = var.location
   resource_group_name           = var.resourceGroupName
-  subnet_id                     = data.azurerm_subnet.subnet[0].id
-  custom_network_interface_name = "infoasstblobstoragenic"
+  subnet_id                     = var.subnet_id
+  custom_network_interface_name = "nic-${var.name}-blob"
   tags                          = var.tags
   private_service_connection {
-    name                           = "${var.name}-private-link-service-connection"
+    name                           = "pend-${var.name}-blob"
     private_connection_resource_id = azurerm_storage_account.storage.id
     is_manual_connection           = false
     subresource_names              = ["blob"]
   }
 
   private_dns_zone_group {
-    name                 = "${var.name}PrivateDnsZoneGroup"
+    name                 = "PrivateDnsZoneGroup"
     private_dns_zone_ids = var.private_dns_zone_ids
   }
 }
 
-// Create a private endpoint for blob storage account
 resource "azurerm_private_endpoint" "filePrivateEndpoint" {
-  count                         = var.is_secure_mode ? 1 : 0
-  name                          = "${var.name}-private-endpoint-file"
+  name                          = "pend-${var.name}-file"
   location                      = var.location
   resource_group_name           = var.resourceGroupName
-  subnet_id                     = data.azurerm_subnet.subnet[0].id
-  custom_network_interface_name = "infoasstfilestoragenic"
+  subnet_id                     = var.subnet_id
+  custom_network_interface_name = "nic-${var.name}-file"
   tags                          = var.tags
   private_service_connection {
-    name                           = "${var.name}-private-link-service-connection"
+    name                           = "pend-${var.name}-file"
     private_connection_resource_id = azurerm_storage_account.storage.id
     is_manual_connection           = false
     subresource_names              = ["file"]
   }
 
   private_dns_zone_group {
-    name                 = "${var.name}PrivateDnsZoneGroup"
+    name                 = "PrivateDnsZoneGroup"
     private_dns_zone_ids = var.private_dns_zone_ids
   }
 }
 
-
-// Create a private endpoint for blob storage account
 resource "azurerm_private_endpoint" "tablePrivateEndpoint" {
-  count                         = var.is_secure_mode ? 1 : 0
-  name                          = "${var.name}-private-endpoint-table"
+  name                          = "pend-${var.name}-table"
   location                      = var.location
   resource_group_name           = var.resourceGroupName
-  subnet_id                     = data.azurerm_subnet.subnet[0].id
-  custom_network_interface_name = "infoassttablestoragenic"
+  subnet_id                     = var.subnet_id
+  custom_network_interface_name = "nic-${var.name}-table"
   tags                          = var.tags
   private_service_connection {
-    name                           = "${var.name}-private-link-service-connection"
+    name                           = "pend-${var.name}-table"
     private_connection_resource_id = azurerm_storage_account.storage.id
     is_manual_connection           = false
     subresource_names              = ["table"]
   }
 
   private_dns_zone_group {
-    name                 = "${var.name}PrivateDnsZoneGroup"
+    name                 = "PrivateDnsZoneGroup"
     private_dns_zone_ids = var.private_dns_zone_ids
   }
 }
 
-// Create a private endpoint for queue storage account
 resource "azurerm_private_endpoint" "queuePrivateEndpoint" {
-  count                         = var.is_secure_mode ? 1 : 0
-  name                          = "${var.name}-private-endpoint-queue"
+  name                          = "pend-${var.name}-queue"
   location                      = var.location
   resource_group_name           = var.resourceGroupName
-  subnet_id                     = data.azurerm_subnet.subnet[0].id
-  custom_network_interface_name = "infoasstqueuestoragenic"
+  subnet_id                     = var.subnet_id
+  custom_network_interface_name = "nic-${var.name}-queue"
   tags                          = var.tags
   private_service_connection {
-    name                           = "${var.name}-private-link-service-connection"
+    name                           = "pend-${var.name}-queue"
     private_connection_resource_id = azurerm_storage_account.storage.id
     is_manual_connection           = false
     subresource_names              = ["queue"]
   }
 
   private_dns_zone_group {
-    name                 = "${var.name}PrivateDnsZoneGroup"
+    name                 = "PrivateDnsZoneGroup"
     private_dns_zone_ids = var.private_dns_zone_ids
   }
 }
 
-// Only create the config blob if we are not in secure mode as SharePoint integration is not supported in secure mode
 resource "azurerm_storage_blob" "config" {
-  depends_on = [ azurerm_resource_group_template_deployment.container ]
-  count                  = var.is_secure_mode ? 0 : 1
+  depends_on             = [ azurerm_resource_group_template_deployment.container ]
   name                   = "config.json"
   storage_account_name   = azurerm_storage_account.storage.name
   storage_container_name = "config"

@@ -1,14 +1,11 @@
-# Create the web app service plan
 resource "azurerm_service_plan" "appServicePlan" {
-  name                = var.plan_name
+  name                = "plan-${var.resource_name_suffix}-web"
   location            = var.location
   resource_group_name = var.resourceGroupName
-
-  sku_name = var.sku["size"]
-  worker_count = var.sku["capacity"]
-  os_type = "Linux"
-
-  tags = var.tags
+  sku_name            = var.sku["size"]
+  worker_count        = var.sku["capacity"]
+  os_type             = "Linux"
+  tags                = var.tags
 }
 
 resource "azurerm_monitor_autoscale_setting" "scaleout" {
@@ -73,17 +70,16 @@ resource "azurerm_role_assignment" "acr_pull_role" {
   scope                = var.container_registry_id
 }
 
-# Create the web app
 resource "azurerm_linux_web_app" "app_service" {
-  name                                = var.name
-  location                            = var.location
-  resource_group_name                 = var.resourceGroupName
-  service_plan_id                     = azurerm_service_plan.appServicePlan.id
-  https_only                          = true
-  tags                                = var.tags
-  webdeploy_publish_basic_authentication_enabled = false
+  name                                            = "app-${var.resource_name_suffix}-web"
+  location                                        = var.location
+  resource_group_name                             = var.resourceGroupName
+  service_plan_id                                 = azurerm_service_plan.appServicePlan.id
+  https_only                                      = true
+  tags                                            = var.tags
+  webdeploy_publish_basic_authentication_enabled  = false
   public_network_access_enabled                   = true
-  virtual_network_subnet_id                       = var.is_secure_mode ? var.snetIntegration_id : null
+  virtual_network_subnet_id                       = var.snetIntegration_id
   
   site_config {
     application_stack {
@@ -94,7 +90,7 @@ resource "azurerm_linux_web_app" "app_service" {
     }
     container_registry_use_managed_identity = true
     always_on                               = var.alwaysOn
-    ftps_state                              = var.is_secure_mode ? "Disabled" : var.ftpsState
+    ftps_state                              = "Disabled"
     app_command_line                        = var.appCommandLine
     health_check_path                       = var.healthCheckPath
     health_check_eviction_time_in_min       = 10
@@ -116,7 +112,7 @@ resource "azurerm_linux_web_app" "app_service" {
       "ENABLE_ORYX_BUILD"                         = lower(tostring(var.enableOryxBuild))
       "APPLICATIONINSIGHTS_CONNECTION_STRING"     = var.applicationInsightsConnectionString
       "BING_SEARCH_KEY"                           = "@Microsoft.KeyVault(SecretUri=${var.keyVaultUri}secrets/BINGSEARCH-KEY)"
-      "WEBSITE_PULL_IMAGE_OVER_VNET"              = var.is_secure_mode ? "true" : "false"
+      "WEBSITE_PULL_IMAGE_OVER_VNET"              = "true"
       "WEBSITES_PORT"                             = "6000"
       "WEBSITES_CONTAINER_START_TIME_LIMIT"       = "1600"
       "WEBSITES_ENABLE_APP_SERVICE_STORAGE"       = "false"
@@ -148,7 +144,7 @@ resource "azurerm_linux_web_app" "app_service" {
       tenant_auth_endpoint = "https://sts.windows.net/${var.tenantId}/v2.0"
       www_authentication_disabled  = false
       allowed_audiences = [
-        "api://${var.name}"
+        "api://app-${var.resource_name_suffix}-web"
       ]
     }
     login{
@@ -157,40 +153,7 @@ resource "azurerm_linux_web_app" "app_service" {
   }
 }
 
-resource "azurerm_monitor_diagnostic_setting" "diagnostic_logs_commercial" {
-  count                      = var.azure_environment == "AzureUSGovernment" ? 0 : 1
-  name                       = azurerm_linux_web_app.app_service.name
-  target_resource_id         = azurerm_linux_web_app.app_service.id
-  log_analytics_workspace_id = var.logAnalyticsWorkspaceResourceId
-  enabled_log  {
-    category = "AppServiceAppLogs"
-  }
-  enabled_log {
-    category = "AppServicePlatformLogs"
-  }
-  enabled_log {
-    category = "AppServiceConsoleLogs"
-  }
-  enabled_log {
-    category = "AppServiceIPSecAuditLogs"
-  }
-  enabled_log {
-    category = "AppServiceHTTPLogs"
-  }
-  enabled_log {
-    category = "AppServiceAuditLogs"
-  }
-  enabled_log {
-    category = "AppServiceAuthenticationLogs"
-  }
-  metric {
-    category = "AllMetrics"
-    enabled  = true
-  }
-}
-
 resource "azurerm_monitor_diagnostic_setting" "diagnostic_logs_usgov" {
-  count                      = var.azure_environment == "AzureUSGovernment" ? 1 : 0
   name                       = azurerm_linux_web_app.app_service.name
   target_resource_id         = azurerm_linux_web_app.app_service.id
   log_analytics_workspace_id = var.logAnalyticsWorkspaceResourceId
@@ -246,31 +209,23 @@ resource "azurerm_key_vault_access_policy" "policy" {
   ]
 }
 
-data "azurerm_subnet" "subnet" {
-  count                = var.is_secure_mode ? 1 : 0
-  name                 = var.subnet_name
-  virtual_network_name = var.vnet_name
-  resource_group_name  = var.resourceGroupName
-}
-
 resource "azurerm_private_endpoint" "backendPrivateEndpoint" {
-  count                         = var.is_secure_mode ? 1 : 0
-  name                          = "${var.name}-private-endpoint"
+  name                          = "pend-${var.resource_name_suffix}-app-web"
   location                      = var.location
   resource_group_name           = var.resourceGroupName
-  subnet_id                     = data.azurerm_subnet.subnet[0].id
+  subnet_id                     = var.subnet_id
   tags                          = var.tags
-  custom_network_interface_name = "infoasstwebnic"
+  custom_network_interface_name = "nic-${var.resource_name_suffix}-app-web"
 
   private_service_connection {
-    name                           = "${var.name}-private-link-service-connection"
+    name                           = "pend-${var.resource_name_suffix}-app-web"
     private_connection_resource_id = azurerm_linux_web_app.app_service.id
     is_manual_connection           = false
-    subresource_names               = ["sites"]
+    subresource_names              = ["sites"]
   }
 
   private_dns_zone_group {
-    name                 = "${var.name}PrivateDnsZoneGroup"
+    name                 = "WebPrivateDnsZoneGroup"
     private_dns_zone_ids = var.private_dns_zone_ids
   }
 }

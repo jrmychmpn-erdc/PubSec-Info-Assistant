@@ -1,38 +1,30 @@
 resource "azurerm_container_registry" "acr" {
-  name                = lower(var.name)
+  name                = var.name
   resource_group_name = var.resourceGroupName
   location            = var.location
   sku                 = "Premium"  // Premium is required for networking features
   admin_enabled       = true       // Enables the admin account for Docker login
   tags                = var.tags
-  public_network_access_enabled = var.is_secure_mode ? false : true
-}
-
-data "azurerm_subnet" "subnet" {
-  count                = var.is_secure_mode ? 1 : 0
-  name                 = var.subnet_name
-  virtual_network_name = var.vnet_name
-  resource_group_name  = var.resourceGroupName
+  public_network_access_enabled = false
 }
 
 resource "azurerm_private_endpoint" "ContainerRegistryPrivateEndpoint" {
-  count                         = var.is_secure_mode ? 1 : 0
-  name                          = "${var.name}-private-endpoint"
+  name                          = "pend-${var.resource_name_suffix}-cr"
   location                      = var.location
   resource_group_name           = var.resourceGroupName
-  subnet_id                     = data.azurerm_subnet.subnet[0].id
+  subnet_id                     = var.subnet_id
   tags                          = var.tags
-  custom_network_interface_name = "infoasstacrnic"
+  custom_network_interface_name = "nic-${var.resource_name_suffix}-cr"
 
   private_service_connection {
-    name                            = "${var.name}-private-link-service-connection"
+    name                            = "pend-${var.resource_name_suffix}-cr"
     private_connection_resource_id  = azurerm_container_registry.acr.id
     is_manual_connection            = false
     subresource_names               = ["registry"]
   }
 
   private_dns_zone_group {
-    name                 = "${var.name}PrivateDnsZoneGroup"
+    name                 = "PrivateDnsZoneGroup"
     private_dns_zone_ids = var.private_dns_zone_ids
   }
 }

@@ -13,6 +13,21 @@ variable "resourceGroupName" {
   default = ""
 }
 
+variable "customerName" {
+  type    = string
+  default = ""
+}
+
+variable "projectName" {
+  type    = string
+  default = ""
+}
+
+variable "networkSegment" {
+  type    = string
+  default = "int"
+}
+
 variable "buildNumber" {
   type    = string
   default = "local"

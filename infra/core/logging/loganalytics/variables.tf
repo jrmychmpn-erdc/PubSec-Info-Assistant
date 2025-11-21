@@ -1,9 +1,5 @@
-variable "logAnalyticsName" {
-  type    = string
-}
-
-variable "applicationInsightsName" {
-  type    = string
+variable "resource_name_suffix" {
+  type = string
 }
 
 variable "location" {
@@ -36,11 +32,6 @@ variable "componentResource" {
   default     = ""
 }
 
-variable "is_secure_mode" {
-  type    = bool
-  default = false
-}
-
 variable "vnet_id" {
   type = string
 }
@@ -71,10 +62,6 @@ variable "privateDnsZoneNameBlob" {
 
 variable "groupId" {
   type = string
-}
-
-variable "privateLinkScopeName" {
-  type    = string
 }
 
 variable "vnet_name" {

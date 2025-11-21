@@ -2,6 +2,10 @@ variable "randomString" {
   type = string
 }
 
+variable "resource_name_suffix" {
+  type = string
+}
+
 variable "requireWebsiteSecurityMembership" {
   type = bool
   default = false

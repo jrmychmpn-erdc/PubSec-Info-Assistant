@@ -1,8 +1,4 @@
-variable "name" {
-  type = string
-}
-
-variable "plan_name" {
+variable "resource_name_suffix" {
   type = string
 }
 
@@ -122,16 +118,7 @@ variable "runtimeVersion" {
   default = "3.12"
 }
 
-variable "is_secure_mode" {
-  description = "Specifies whether to deploy in secure mode"
-  type        = bool
-}
-
-variable "vnet_name" {
-  type = string
-}
-
-variable "subnet_name" {
+variable "subnet_id" {
   type = string
 }
 
@@ -168,9 +155,5 @@ variable "container_registry_id" {
 
 variable "container_registry_admin_password" {
   description = "The admin password of the container registry"
-  type        = string
-}
-
-variable "azure_environment" {
   type        = string
 }

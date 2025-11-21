@@ -1,4 +1,4 @@
-variable "name" {
+variable "resource_name_suffix" {
   type = string
 }
 
@@ -45,21 +45,8 @@ variable "useExistingAOAIService" {
   default = false
 }
 
-variable "is_secure_mode" {
-  type = bool
-  default = false
-}
-
 variable "private_dns_zone_ids" {
   type = set(string)
-}
-
-variable "vnet_name" {
-  type = string
-}
-
-variable "subnet_name" {
-  type = string
 }
 
 variable "subnet_id" {

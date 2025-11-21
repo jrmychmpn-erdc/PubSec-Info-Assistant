@@ -10,7 +10,7 @@ help: ## Show this help
         | column -t -s '|'
 
 #deploy: build infrastructure extract-env deploy-search-indexes deploy-functions deploy-webapp deploy-enrichments ## Deploy infrastructure and application code
-deploy: infrastructure extract-env deploy-search-indexes deploy-functions deploy-webapp deploy-enrichments ## Deploy infrastructure and application code
+deploy: extract-env deploy-search-indexes deploy-functions deploy-webapp deploy-enrichments ## Deploy infrastructure and application code
 
 build-deploy-webapp: build extract-env deploy-webapp ##Build and Deploy the Webapp
 build-deploy-enrichments: build extract-env deploy-enrichments ##Build and Deploy the Enrichment Webapp

@@ -1,11 +1,11 @@
 
 resource "azurerm_search_service" "search" {
-  name                          = var.name
+  name                          = "srch-${var.resource_name_suffix}"
   location                      = var.location
   resource_group_name           = var.resourceGroupName
   sku                           = var.sku["name"]
   tags                          = var.tags
-  public_network_access_enabled = var.is_secure_mode ? false : true
+  public_network_access_enabled = false
   local_authentication_enabled  = false
   replica_count                 = 1
   partition_count               = 1
@@ -16,30 +16,22 @@ resource "azurerm_search_service" "search" {
   }
 }
 
-data "azurerm_subnet" "subnet" {
-  count                = var.is_secure_mode ? 1 : 0
-  name                 = var.subnet_name
-  virtual_network_name = var.vnet_name
-  resource_group_name  = var.resourceGroupName
-}
-
 resource "azurerm_private_endpoint" "searchPrivateEndpoint" {
-  count                         = var.is_secure_mode ? 1 : 0
-  name                          = "${var.name}-private-endpoint"
+  name                          = "pend-${var.resource_name_suffix}-srch"
   location                      = var.location
   resource_group_name           = var.resourceGroupName
-  subnet_id                     = data.azurerm_subnet.subnet[0].id
-  custom_network_interface_name = "infoasstsearchnic"
+  subnet_id                     = var.subnet_id
+  custom_network_interface_name = "nic-${var.resource_name_suffix}-srch"
   tags                          = var.tags
   private_service_connection {
-    name                           = "${var.name}-private-link-service-connection"
+    name                           = "pend-${var.resource_name_suffix}-srch"
     private_connection_resource_id = azurerm_search_service.search.id
     is_manual_connection           = false
     subresource_names              = ["searchService"]
   }
 
   private_dns_zone_group {
-    name                 = "${var.name}PrivateDnsZoneGroup"
+    name                 = "PrivateDnsZoneGroup"
     private_dns_zone_ids = var.private_dns_zone_ids
   }
 }

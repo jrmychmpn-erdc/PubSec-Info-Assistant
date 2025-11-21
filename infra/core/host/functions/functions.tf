@@ -1,12 +1,10 @@
-# Terraform resource file to create a service plan for the function app
 resource "azurerm_service_plan" "funcServicePlan" {
-  name                = var.plan_name
+  name                = "plan-${var.resource_name_suffix}-func"
   location            = var.location
   resource_group_name = var.resourceGroupName
-  sku_name = var.sku["size"]
-  worker_count = var.sku["capacity"]
-  os_type = "Linux"
-
+  sku_name            = var.sku["size"]
+  worker_count        = var.sku["capacity"]
+  os_type             = "Linux"
   tags = var.tags
 }
 
@@ -72,31 +70,17 @@ resource "azurerm_role_assignment" "acr_pull_role" {
   scope                = var.container_registry_id
 }
 
-data "azurerm_key_vault" "existing" {
-  name                = var.keyVaultName
-  resource_group_name = var.resourceGroupName
-}
-
-data "azurerm_storage_account" "existing_sa" {
-  name                = var.blobStorageAccountName
-  resource_group_name = var.resourceGroupName
-}
-
-// Create function app resource
 resource "azurerm_linux_function_app" "function_app" {
-  name                                = var.name
+  name                                = "app-${var.resource_name_suffix}-func"
   location                            = var.location
   resource_group_name                 = var.resourceGroupName
   service_plan_id                     = azurerm_service_plan.funcServicePlan.id
   storage_account_name                = var.blobStorageAccountName
-  storage_account_access_key          = data.azurerm_storage_account.existing_sa.primary_access_key
-  #storage_uses_managed_identity       = true
+  storage_account_access_key          = var.storageAccountPrimaryAccessKey
   https_only                          = true
   tags                                = var.tags
-  public_network_access_enabled       = var.is_secure_mode ? false : true 
-  virtual_network_subnet_id           = var.is_secure_mode ? var.subnetIntegration_id : null
-  content_share_force_disabled        = true
-
+  public_network_access_enabled       = false
+  virtual_network_subnet_id           = var.subnetIntegration_id
 
   site_config {
     application_stack {
@@ -115,7 +99,7 @@ resource "azurerm_linux_function_app" "function_app" {
     cors {
       allowed_origins                       = concat([var.azure_portal_domain, "https://ms.portal.azure.com"], var.allowedOrigins)
     }
-    vnet_route_all_enabled                  = var.is_secure_mode ? true : false
+    vnet_route_all_enabled                  = true
   }
 
   identity {
@@ -124,8 +108,7 @@ resource "azurerm_linux_function_app" "function_app" {
   
   app_settings = {
     # Network realated settings for secure mode
-    WEBSITE_PULL_IMAGE_OVER_VNET                = var.is_secure_mode ? "true" : "false"
-
+    WEBSITE_PULL_IMAGE_OVER_VNET                = "true"
     SCM_DO_BUILD_DURING_DEPLOYMENT              = "false"
     ENABLE_ORYX_BUILD                           = "false"
     #Set all connections to use Managed Identity instead of connection strings
@@ -186,34 +169,13 @@ resource "azurerm_linux_function_app" "function_app" {
     AZURE_SEARCH_SERVICE_ENDPOINT               = var.azureSearchServiceEndpoint
     AZURE_SEARCH_INDEX                          = var.azureSearchIndex
     AZURE_AI_CREDENTIAL_DOMAIN                  = var.azure_ai_credential_domain
-    AZURE_OPENAI_AUTHORITY_HOST                 = var.azure_environment
+    AZURE_OPENAI_AUTHORITY_HOST                 = "AzureUSGovernment"
     LOCAL_DEBUG                                 = "false"
   }
   
 }
 
-resource "azurerm_monitor_diagnostic_setting" "diagnostic_logs_commercial" {
-  count                      = var.azure_environment == "AzureUSGovernment" ? 0 : 1
-  name                       = azurerm_linux_function_app.function_app.name
-  target_resource_id         = azurerm_linux_function_app.function_app.id
-  log_analytics_workspace_id = var.logAnalyticsWorkspaceResourceId
-
-  enabled_log  {
-    category = "FunctionAppLogs"
-  }
-
-  enabled_log {
-    category = "AppServiceAuthenticationLogs"
-  }
-
-  metric {
-    category = "AllMetrics"
-    enabled  = true
-  }
-}
-
 resource "azurerm_monitor_diagnostic_setting" "diagnostic_logs_usgov" {
-  count                      = var.azure_environment == "AzureUSGovernment" ? 1 : 0
   name                       = azurerm_linux_function_app.function_app.name
   target_resource_id         = azurerm_linux_function_app.function_app.id
   log_analytics_workspace_id = var.logAnalyticsWorkspaceResourceId
@@ -229,13 +191,10 @@ resource "azurerm_monitor_diagnostic_setting" "diagnostic_logs_usgov" {
 }
 
 resource "azurerm_key_vault_access_policy" "policy" {
-  key_vault_id = data.azurerm_key_vault.existing.id
-
-  tenant_id = azurerm_linux_function_app.function_app.identity.0.tenant_id
-  object_id = azurerm_linux_function_app.function_app.identity.0.principal_id
-
-
-  secret_permissions = [
+  key_vault_id        = var.keyVaultId
+  tenant_id           = azurerm_linux_function_app.function_app.identity.0.tenant_id
+  object_id           = azurerm_linux_function_app.function_app.identity.0.principal_id
+  secret_permissions  = [
     "Get",
     "List",
     "Set",
@@ -243,32 +202,24 @@ resource "azurerm_key_vault_access_policy" "policy" {
   ]
 }
 
-data "azurerm_subnet" "subnet" {
-  count                = var.is_secure_mode ? 1 : 0
-  name                 = var.subnet_name
-  virtual_network_name = var.vnet_name
-  resource_group_name  = var.resourceGroupName
-}
-
 resource "azurerm_private_endpoint" "privateFunctionEndpoint" {
-  count                         = var.is_secure_mode ? 1 : 0
-  name                          = "${var.name}-private-endpoint"
+  name                          = "pend-${var.resource_name_suffix}-app-func"
   location                      = var.location
   resource_group_name           = var.resourceGroupName
-  subnet_id                     = data.azurerm_subnet.subnet[0].id
+  subnet_id                     = var.subnet_id
   tags                          = var.tags
-  custom_network_interface_name = "infoasstfuncnic"
+  custom_network_interface_name = "nic-${var.resource_name_suffix}-app-func"
    
 
   private_service_connection {
-    name = "functionappprivateendpointconnection"
-    private_connection_resource_id = azurerm_linux_function_app.function_app.id
-    subresource_names = ["sites"]
-    is_manual_connection = false
+    name                            = "pend-${var.resource_name_suffix}-app-func"
+    private_connection_resource_id  = azurerm_linux_function_app.function_app.id
+    subresource_names               = ["sites"]
+    is_manual_connection            = false
   }
   
   private_dns_zone_group {
-    name                 = "${var.name}PrivateDnsZoneGroup"
+    name                 = "FuncPrivateDnsZoneGroup"
     private_dns_zone_ids = var.private_dns_zone_ids
   }
 }

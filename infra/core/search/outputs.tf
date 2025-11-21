@@ -11,5 +11,5 @@ output "name" {
 }
 
 output "privateEndpointId" {
-  value = var.is_secure_mode ? azurerm_private_endpoint.searchPrivateEndpoint[0].id : null
+  value = azurerm_private_endpoint.searchPrivateEndpoint.id
 }

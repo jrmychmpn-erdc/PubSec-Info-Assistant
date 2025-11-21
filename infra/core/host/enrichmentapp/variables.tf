@@ -1,8 +1,4 @@
-variable "plan_name" {
-  type = string
-}
-
-variable "name" {
+variable "resource_name_suffix" {
   type = string
 }
 
@@ -74,11 +70,7 @@ variable "logAnalyticsWorkspaceResourceId" {
   default = ""
 }
 
-variable "keyVaultUri" { 
-  type = string
-}
-
-variable "keyVaultName" {
+variable "keyVaultId" {
   type = string
   default = ""
 }
@@ -118,26 +110,14 @@ variable "container_registry_id" {
   type        = string
 }
 
-variable "is_secure_mode" {
-  type = bool
-}
-
 variable "subnetIntegration_id" {
   type = string
 }
 
-variable "vnet_name" {
-  type = string
-}
-
-variable "subnet_name" {
+variable "subnet_id" {
   type = string
 }
 
 variable "private_dns_zone_ids" {
   type = set(string)
-}
-
-variable "azure_environment" {
-  type        = string
 }

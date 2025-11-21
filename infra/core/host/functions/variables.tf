@@ -1,8 +1,4 @@
-variable "plan_name" {
-  type = string
-}
-
-variable "name" {
+variable "resource_name_suffix" {
   type = string
 }
 
@@ -39,11 +35,16 @@ variable "storageAccountId" {
   default = ""
 }
 
-variable "keyVaultUri" { 
+variable "storageAccountPrimaryAccessKey" {
+  type    = string
+  default = ""
+}
+
+variable "keyVaultId" { 
   type = string
 }
 
-variable "keyVaultName" {
+variable "keyVaultUri" { 
   type = string
 }
 
@@ -253,11 +254,7 @@ variable "endpointSuffix" {
   default = "core.windows.net"
 }
 
-variable "vnet_name" {
-  type = string
-}
-
-variable "subnet_name" {
+variable "subnet_id" {
   type = string
 }
 
@@ -267,11 +264,6 @@ variable "subnetIntegration_id" {
 
 variable "private_dns_zone_ids" {
   type = set(string)
-}
-
-variable "is_secure_mode" {
-  description = "Specifies whether to deploy in secure mode"
-  type        = bool
 }
 
 variable "managedIdentity" {
@@ -310,10 +302,6 @@ variable "container_registry_admin_password" {
 
 variable "logAnalyticsWorkspaceResourceId" {
   type = string
-}
-
-variable "azure_environment" {
-  type        = string
 }
 
 variable "azure_ai_credential_domain" {

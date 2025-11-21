@@ -168,11 +168,11 @@ output "AZURE_ENVIRONMENT" {
 }
 
 output "BING_SEARCH_ENDPOINT" {
-  value = var.enableWebChat ? module.bingSearch[0].endpoint : ""
+  value = ""
 }
 
 output "BING_SEARCH_KEY" {
-  value = var.enableWebChat ? module.bingSearch[0].key : ""
+  value = ""
 }
 
 output "ENABLE_BING_SAFE_SEARCH" {
@@ -201,7 +201,7 @@ output "CONTAINER_REGISTRY_PASSWORD" {
 }
 
 output "DNS_PRIVATE_RESOLVER_IP" {
-  value = var.is_secure_mode ? module.network[0].dns_private_resolver_ip : ""
+  value = module.network.dns_private_resolver_ip
 }
 
 output "AZURE_AI_CREDENTIAL_DOMAIN" {
